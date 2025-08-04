@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>WASD Cipher Tool</title>
+  <meta name="theme-color" content="#4682b4" />
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root {
+      --bg-light: #f7f9fc;
+      --bg-dark: #1f1f1f;
+      --text-light: #333;
+      --text-dark: #eee;
+      --accent-light: #4682b4;
+      --accent-dark: #5ca0e0;
+      --box-light: #eef1f5;
+      --box-dark: #2a2a2a;
+      --input-border: #ccc;
+    }
+
+    body {
+      max-width: 800px;
+      margin: 2rem auto;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 1rem;
+      background-color: var(--bg-light);
+      color: var(--text-light);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark {
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .section {
+      border: 2px solid #ccc;
+      padding: 1rem;
+      border-radius: 10px;
+      margin-bottom: 1.5rem;
+      background: var(--box-light);
+    }
+
+    body.dark .section {
+      background: var(--box-dark);
+      border-color: #444;
+    }
+
+    label {
+      font-weight: bold;
+      margin-top: 1rem;
+      display: block;
+    }
+
+    textarea, input {
+      width: 100%;
+      font-size: 1rem;
+      padding: 0.6rem;
+      margin-top: 0.3rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      box-sizing: border-box;
+      background-color: white;
+      color: black;
+    }
+
+    body.dark textarea,
+    body.dark input {
+      background-color: #333;
+      color: white;
+      border: 1px solid #555;
+    }
+
+    button {
+      margin: 0.5rem 0.5rem 0.5rem 0;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      background-color: var(--accent-light);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #366c9c;
+    }
+
+    body.dark button {
+      background-color: var(--accent-dark);
+    }
+
+    pre {
+      background: #ddd;
+      padding: 1rem;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      border-radius: 6px;
+    }
+
+    body.dark pre {
+      background: #1b1b1b;
+    }
+
+    details {
+      background: #f0f0f0;
+      padding: 0.8rem 1rem;
+      border-radius: 6px;
+      margin-top: 1.5rem;
+    }
+
+    body.dark details {
+      background: #2b2b2b;
+    }
+
+    summary {
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1.05rem;
+    }
+
+    .theme-toggle {
+      float: right;
+      margin-top: -2rem;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
+  <h2>WASD Cipher Tool</h2>
+
+  <div class="section">
+    <h3>🔐 Encrypt a Message</h3>
+    <label for="encryptInput">Message (lowercase only, no ":" or "#"):</label>
+    <textarea id="encryptInput" placeholder="Type your message here..."></textarea>
+
+    <label for="encryptKey">Key (4 letters: W, A, S, D):</label>
+    <input id="encryptKey" maxlength="4" value="WASD" />
+
+    <button onclick="encrypt()">Encrypt</button>
+    <button onclick="randomKey()">Random Key</button>
+
+    <h4>Encrypted Output:</h4>
+    <pre id="encryptOutput"></pre>
+  </div>
+
+  <div class="section">
+    <h3>🔓 Decrypt a Message</h3>
+    <label for="decryptInput">Encrypted Message (with :KEY at end):</label>
+    <textarea id="decryptInput" placeholder="Paste the encrypted text here..."></textarea>
+
+    <button onclick="decrypt()">Decrypt</button>
+
+    <h4>Decrypted Output:</h4>
+    <pre id="decryptOutput"></pre>
+  </div>
+
+  <details>
+    <summary>📘 Instructions (Simple Guide)</summary>
+    <ul>
+      <li>Use lowercase letters and spaces only (no <code>:</code> or <code>#</code>).</li>
+      <li>Choose a key like <b>ASWD</b>, made of W, A, S, D in any order without repeats.</li>
+      <li><b>Encrypt:</b> The message is split into 4 parts and each is shifted differently based on the key.</li>
+      <li><b>Decrypt:</b> Paste the encrypted message (with <code>:KEY</code> at the end) to reveal the original text.</li>
+      <li>If the message doesn’t divide evenly into 4 parts, <code>#</code> is added (and later removed).</li>
+    </ul>
+  </details>
+
+  <details>
+    <summary>🔍 How it Works</summary>
+    <ol>
+      <li>Choose a secret key (4-letter order of W, A, S, D).</li>
+      <li>The message is split into 4 equal chunks (padded with <code>#</code> if needed).</li>
+      <li>Each part is shifted by:
+        <ul>
+          <li>W = shift +1</li>
+          <li>A = shift +2</li>
+          <li>S = shift +3</li>
+          <li>D = shift +4</li>
+        </ul>
+      </li>
+      <li>The parts are combined and the key is added to the end (like <code>:DWAS</code>).</li>
+      <li>Decryption uses the key to reverse the Caesar shifts.</li>
+    </ol>
+  </details>
+
+  <script>
+    const PAD_CHAR = '#';
+    const shifts = { 'W': 1, 'A': 2, 'S': 3, 'D': 4 };
+
+    function padText(text) {
+      const remainder = text.length % 4;
+      return remainder === 0 ? text : text + PAD_CHAR.repeat(4 - remainder);
+    }
+
+    function stripPadding(text) {
+      return text.replace(new RegExp(PAD_CHAR + '+$'), '');
+    }
+
+    function caesarShift(char, shift) {
+      if (char === ' ') return ' ';
+      const code = char.charCodeAt(0);
+      if (code < 97 || code > 122) return char;
+      return String.fromCharCode(((code - 97 + shift) % 26) + 97);
+    }
+
+    function caesarUnshift(char, shift) {
+      if (char === ' ') return ' ';
+      const code = char.charCodeAt(0);
+      if (code < 65 || code > 90) return char;
+      return String.fromCharCode(((code - 65 - shift + 26) % 26) + 97);
+    }
+
+    function encrypt() {
+      let text = document.getElementById('encryptInput').value.toLowerCase();
+      let key = document.getElementById('encryptKey').value.toUpperCase();
+
+      if (text.includes(':') || text.includes(PAD_CHAR)) {
+        alert(`Text cannot include ":" or "${PAD_CHAR}".`);
+        return;
+      }
+
+      if (!/^[WASD]{4}$/.test(key)) {
+        alert("Key must be 4 letters: W, A, S, D (no repeats).");
+        return;
+      }
+
+      text = padText(text);
+      const partLen = text.length / 4;
+      let parts = [];
+
+      for (let i = 0; i < 4; i++) {
+        let part = text.slice(i * partLen, (i + 1) * partLen);
+        let shift = shifts[key[i]];
+        let encrypted = '';
+        for (let ch of part) {
+          encrypted += caesarShift(ch, shift).toUpperCase();
+        }
+        parts.push(encrypted);
+      }
+
+      const result = parts.join('') + ':' + key;
+      document.getElementById('encryptOutput').textContent = result;
+    }
+
+    function decrypt() {
+      let input = document.getElementById('decryptInput').value.trim();
+      const keyMatch = input.match(/:([WASD]{4})$/i);
+      if (!keyMatch) {
+        alert("Encrypted message must end with :WASD format.");
+        return;
+      }
+
+      const key = keyMatch[1].toUpperCase();
+      let cipher = input.slice(0, -5);
+      const partLen = cipher.length / 4;
+
+      if (!Number.isInteger(partLen)) {
+        alert("Message length must be divisible by 4.");
+        return;
+      }
+
+      let parts = [];
+      for (let i = 0; i < 4; i++) {
+        parts.push(cipher.slice(i * partLen, (i + 1) * partLen));
+      }
+
+      let result = '';
+      for (let i = 0; i < 4; i++) {
+        let shift = shifts[key[i]];
+        for (let ch of parts[i]) {
+          result += caesarUnshift(ch, shift);
+        }
+      }
+
+      result = stripPadding(result);
+      document.getElementById('decryptOutput').textContent = result.toLowerCase();
+    }
+
+    function randomKey() {
+      const base = ['W', 'A', 'S', 'D'];
+      for (let i = base.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [base[i], base[j]] = [base[j], base[i]];
+      }
+      document.getElementById('encryptKey').value = base.join('');
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+    }
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log("✅ Service Worker registered:", reg.scope))
+          .catch(err => console.error("❌ Service Worker registration failed:", err));
+      });
+    }
+  </script>
+</body>
+</html>
