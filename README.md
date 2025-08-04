@@ -1,0 +1,1 @@
+this is ALL CODED BY CHATGPT. im not claiming to have made any of the software and code made. I came up with ideas only, everything idea wise was made by me, not ai. i dont know how to code, do this is my idea, nito code, written by our king chatgpt.
